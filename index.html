@@ -1697,7 +1697,7 @@ G({id:'karelialan', title:'Kareli Alan', desc:'Çok kolay: birim kareleri say, �
   return mk(`Boyalı ${kind==='tri'?'üçgenin':'paralelkenarın'} alanı kaç birim kare?`, A, posOnly([b*h, A+1, b+h, A+b, A-1]).filter(v=>v>0&&v!==A), {fig:gridFig([],10,7,extra)}); }});
 G({id:'cevreyurur', title:'Çevre Yürüyüşü', desc:'Kareli zeminde şeklin çevresini bul.', cat:'geo', c:'#10B981', d:'#0B8E63', l:'#E9FBF4', type:'quiz',
  how:'Her karenin kenarı 1 cm. Şeklin dış kenarları boyunca yürü ve kaç cm yürüdüğünü say: bu çevredir.',
- gen(L){ if(L<3){ const cells = L===1?(()=>{const a=ri(2,6), b=ri(2,4), c=[]; for(let i=0;i<a;i++) for(let j=0;j<b;j++) c.push([i+1,j+1]); return c;})():polyomino(ri(5,11)); const p=perim(cells);
+ gen(L){ if(L<3){ const cells = (L===1&&Math.random()<.7)?(()=>{const a=ri(2,6), b=ri(2,4), ox=ri(0,10-a), oy=ri(0,7-b), c=[]; for(let i=0;i<a;i++) for(let j=0;j<b;j++) c.push([i+ox,j+oy]); return c;})():polyomino(L===1?ri(3,6):ri(5,11)); const p=perim(cells);
     return mk('Boyalı şeklin çevresi kaç cm?', p+' cm', posOnly([cells.length, p+2, p-2, p+1, p*2]).filter(v=>v>0&&v!==p).map(v=>v+' cm'), {fig:gridFig(cells)}); }
   const P2=2*ri(5,12), best=Math.floor(P2/4)**2+(P2%4?Math.floor(P2/4):0); const half=P2/2, a=Math.floor(half/2), b=half-a;
   return mk(`<span class="qs">Kenarları tam sayı olan dikdörtgenler</span>Çevresi ${P2} cm olan dikdörtgenlerden alanı en büyük olanın alanı kaç cm²?`, (a*b)+' cm²', [(a-1)*(b+1), half, P2, (half-1)].filter(v=>v>0&&v!==a*b).map(v=>v+' cm²')); }});
@@ -2049,6 +2049,236 @@ bilimsel: () => svg('0 0 120 100', `<circle cx="18" cy="20" r="2" fill="#fff"/><
 dogrudenklem: () => svg('0 0 120 100', `<path d="M14 8V90M6 70H114" stroke="#fff" stroke-width="3"/><path d="M110 8l4 8M6 70" stroke="#fff" stroke-width="0"/><line x1="8" y1="92" x2="70" y2="8" stroke="${Y}" stroke-width="4" stroke-linecap="round"/><circle cx="23.8" cy="70" r="5" fill="#fff" stroke="${N}" stroke-width="2"/><circle cx="47" cy="39" r="5" fill="#fff" stroke="${N}" stroke-width="2"/>${T(90,36,13,'y=2x+1','#fff')}`),
 benzersekil: () => svg('0 0 120 100', `<path d="M8 82H44L26 52Z" fill="#fff" stroke="${N}" stroke-width="2.5" stroke-linejoin="round"/><path d="M50 86H112L81 34Z" fill="${Y}" stroke="${N}" stroke-width="2.5" stroke-linejoin="round"/>${T(60,20,22,'∼','#fff')}${T(26,92,10,'3','#fff')}${T(81,96,10,'6','#fff')}`)
 });
+
+function datS(n){ const u={1:'e',2:'ye',3:'e',4:'e',5:'e',6:'ya',7:'ye',8:'e',9:'a'}, t={1:'a',2:'ye',3:'a',4:'a',5:'ye',6:'a',7:'e',8:'e',9:'a'}; if(n%10) return u[n%10]; if(n%100) return t[(n%100)/10]; return 'e'; }
+const toN = n => `${n}’${datS(n)}`;
+/* ================= SORU ÇEŞİTLİLİĞİ: genişletilmiş üreticiler ================= */
+const GG = id => GAMES.find(x=>x.id===id);
+const LET='ABCDEFKLMNPRST';
+const twoLet = () => { const a=pick(LET.split('')); let b; do{ b=pick(LET.split('')); }while(b===a); return [a,b]; };
+const rotSvg = (vb, body, ang, cx, cy) => svg(vb, `<g transform="rotate(${ang} ${cx} ${cy})">${body}</g>`);
+
+/* Doğru, ışın, doğru parçası */
+function kindBody(kind,[a,b]){ const y=60; const lab=(x,t)=>lbl(x,y+30,t,'middle',18);
+  if(kind==='Doğru') return `<line x1="40" y1="${y}" x2="280" y2="${y}" stroke="${N}" stroke-width="5"/><path d="M24 ${y}l18-10v20zM296 ${y}l-18-10v20z" fill="${N}"/><circle cx="110" cy="${y}" r="6" fill="${N}"/><circle cx="210" cy="${y}" r="6" fill="${N}"/>${lab(110,a)}${lab(210,b)}`;
+  if(kind==='Işın') return `<line x1="60" y1="${y}" x2="280" y2="${y}" stroke="${N}" stroke-width="5"/><circle cx="60" cy="${y}" r="7" fill="${N}"/><circle cx="180" cy="${y}" r="6" fill="${N}"/><path d="M296 ${y}l-18-10v20z" fill="${N}"/>${lab(60,a)}${lab(180,b)}`;
+  if(kind==='Doğru parçası') return `<line x1="60" y1="${y}" x2="260" y2="${y}" stroke="${N}" stroke-width="5"/><circle cx="60" cy="${y}" r="7" fill="${N}"/><circle cx="260" cy="${y}" r="7" fill="${N}"/>${lab(60,a)}${lab(260,b)}`;
+  return `<circle cx="160" cy="${y}" r="8" fill="${N}"/>${lbl(178,y-18,a,'start',20)}`; }
+function raysFig(k){ const ang=[]; const span=ri(0,1)?180:300, st=ri(0,40); for(let i=0;i<k;i++) ang.push(st+i*span/(k-1||1)+ri(-6,6)); let s=`<circle cx="160" cy="110" r="7" fill="${N}"/>`+lbl(150,132,'O','end',18);
+  ang.forEach(a=>{ const x=160+110*Math.cos(P(a)), y=110-90*Math.sin(P(a)); const hx=Math.cos(P(a)), hy=-Math.sin(P(a)); s+=`<line x1="160" y1="110" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${N}" stroke-width="4"/><path d="M${(x+hx*4).toFixed(1)} ${(y+hy*4).toFixed(1)}l${(-hx*16-hy*8).toFixed(1)} ${(-hy*16+hx*8).toFixed(1)}l${(hy*16).toFixed(1)} ${(-hx*16).toFixed(1)}z" fill="${N}"/>`; });
+  return svg('20 0 280 220', s); }
+function segsFig(n){ const ls=shuffle(LET.split('')).slice(0,n); const xs=[40]; for(let i=1;i<n;i++) xs.push(xs[i-1]+ri(40,80)); const sc=260/(xs[n-1]-40); let s=`<line x1="40" y1="50" x2="300" y2="50" stroke="${N}" stroke-width="5"/>`;
+  xs.forEach((x,i)=>{ const X=40+(x-40)*sc; s+=`<circle cx="${X.toFixed(1)}" cy="50" r="7" fill="${N}"/>`+lbl(X,80,ls[i],'middle',18); }); return svg('20 20 300 80', s); }
+GG('dogruisin').gen=function(L){
+  const t = L===1?pick(['kind','kind','rays']):L===2?pick(['rel','rays','segs']):pick(['not','segs','segs','rays']);
+  if(t==='kind'){ const ks=['Doğru','Işın','Doğru parçası','Nokta']; const k=ri(0,3), ang=ri(-35,35); return {q:'Şekildeki geometrik kavram hangisidir?', choices:ks, correct:k, fig:rotSvg('0 0 320 120', kindBody(ks[k],twoLet()), ang, 160, 60)}; }
+  if(t==='rays'){ const k=ri(2,L===1?4:6); return mk('Şekilde O noktasından kaç ışın çıkıyor?', k, [k+1,k-1,k+2,2*k].filter(v=>v>0&&v!==k), {fig:raysFig(k)}); }
+  if(t==='segs'){ const n=L===2?ri(3,4):ri(4,6); const v=n*(n-1)/2; return mk('Şekilde kaç tane doğru parçası vardır?', v, [n, n-1, v+1, v-1, 2*n].filter(x=>x>0&&x!==v), {fig:segsFig(n)}); }
+  if(t==='rel'){ const ks=['Paralel','Dik kesişen','Kesişen (dik değil)']; const k=ri(0,2); return {q:'Bu iki doğru nasıldır?', choices:ks, correct:k, fig:rotSvg('0 0 300 160', linesRelFig(ks[k]).replace(/^<svg[^>]*>|<\/svg>$/g,''), ri(-40,40), 150, 80)}; }
+  const [a,b]=twoLet(); const qs=[[`[${a}${b}] gösterimi neyi ifade eder?`,'Doğru parçası',['Işın','Doğru','Nokta']],[`[${a}${b} gösterimi neyi ifade eder?`,'Işın',['Doğru parçası','Doğru','Açı']],['Bir doğru parçasının kaç uç noktası vardır?','2',['1','0','Sonsuz']],['Bir ışının kaç başlangıç noktası vardır?','1',['2','0','Sonsuz']],['İki farklı noktadan kaç farklı doğru geçer?','1',['2','0','Sonsuz']],['Bir noktadan kaç farklı doğru geçer?','Sonsuz',['1','2','0']],['Aynı düzlemde olup kesişmeyen iki doğruya ne denir?','Paralel doğrular',['Dik doğrular','Kesişen doğrular','Işınlar']],['Kesiştiklerinde 90° açı oluşturan doğrulara ne denir?','Dik doğrular',['Paralel doğrular','Işınlar','Eş doğrular']],[`${a} noktasından başlayıp ${b} noktasından geçerek sonsuza giden çizgi nedir?`,`[${a}${b} ışını`,[`[${a}${b}] doğru parçası`,`${a}${b} doğrusu`,`[${b}${a} ışını`]]];
+  const [q,ans,ds]=pick(qs); return mk(q,ans,ds); };
+
+/* Üçgenin yardımcı elemanları */
+function elemFig2(kind, ls, extra={}){ const ax=ri(95,225), A=[ax,24], B=[30,190], C=[290,190]; const [la,lb,lc,ld]=ls; let D;
+  if(kind==='Kenarortay') D=[160,190]; else if(kind==='Yükseklik') D=[ax,190]; else { const AB=Math.hypot(B[0]-A[0],B[1]-A[1]), AC=Math.hypot(C[0]-A[0],C[1]-A[1]); D=[B[0]+(C[0]-B[0])*AB/(AB+AC),190]; }
+  let s=`<path d="M${ptsStr([A,B,C])}Z" fill="#FCE7F3" stroke="${N}" stroke-width="4" stroke-linejoin="round"/>`+lbl(A[0],10,la,'middle',18)+lbl(16,198,lb,'middle',18)+lbl(304,198,lc,'middle',18);
+  if(kind==='Kenarortay') s+=`<line x1="${(B[0]+D[0])/2-4}" y1="182" x2="${(B[0]+D[0])/2+4}" y2="198" stroke="${N}" stroke-width="3"/><line x1="${(C[0]+D[0])/2-4}" y1="182" x2="${(C[0]+D[0])/2+4}" y2="198" stroke="${N}" stroke-width="3"/>`;
+  if(kind==='Yükseklik') s+=`<path d="M${D[0]} 172h${D[0]>160?-18:18}v18" fill="none" stroke="${N}" stroke-width="2.5"/>`;
+  if(kind==='Açıortay'){ const ang=p=>Math.atan2(p[1]-A[1],p[0]-A[0]); const a1=ang(B), a2=ang(D), a3=ang(C); const arc=(x,y,r)=>`<path d="M${(A[0]+r*Math.cos(x)).toFixed(1)} ${(A[1]+r*Math.sin(x)).toFixed(1)}A${r} ${r} 0 0 0 ${(A[0]+r*Math.cos(y)).toFixed(1)} ${(A[1]+r*Math.sin(y)).toFixed(1)}" fill="none" stroke="#F59E0B" stroke-width="3"/>`; s+=arc(a1,a2,34)+arc(a2,a3,34)+arc(a1,a2,40)+arc(a2,a3,40); }
+  s+=`<line x1="${A[0]}" y1="${A[1]}" x2="${D[0].toFixed(1)}" y2="${D[1]}" stroke="#E11D48" stroke-width="5"/>`+lbl(D[0],206,ld,'middle',16);
+  if(extra.bd) s+=lbl((B[0]+D[0])/2,170,extra.bd,'middle',16,'#1D4ED8');
+  return svg('0 0 320 214', s); }
+const tLet = () => { const s=shuffle(LET.split('')).slice(0,4); return s; };
+GG('ucgeneleman').gen=function(L){ const ks=['Kenarortay','Yükseklik','Açıortay'];
+  if(L===1 || (L===2&&Math.random()<.4)){ const k=ri(0,2), ls=tLet(); return {q:`Kırmızı ile gösterilen [${ls[0]}${ls[3]}] hangisidir?`, choices:ks, correct:k, fig:elemFig2(ks[k],ls)}; }
+  const t=pick(L===2?['med','bis','alt']:['med','bis','alt','con']); const ls=tLet(), [a,b,c,d]=ls;
+  if(t==='med'){ const k=ri(3,19); return mk(`<span class="qs">[${a}${d}] kenarortaydır.</span>|${b}${d}| = ${k} cm ise |${b}${c}| kaç cm?`, (2*k)+' cm', [k, k+2, 3*k, 2*k+1].map(v=>v+' cm'), {fig:elemFig2('Kenarortay',ls)}); }
+  if(t==='bis'){ const x=ri(12,70); return mk(`<span class="qs">[${a}${d}] açıortaydır.</span>m(${b}${a}${c}) = ${2*x}° ise m(${b}${a}${d}) kaç derecedir?`, deg(x), [deg(2*x), deg(90-x), deg(x+10), deg(180-2*x)].filter(v=>v!==deg(x)), {fig:elemFig2('Açıortay',ls)}); }
+  if(t==='alt'){ const bb=ri(25,75); return mk(`<span class="qs">[${a}${d}] yüksekliktir.</span>m(${a}${b}${c}) = ${bb}° ise m(${b}${a}${d}) kaç derecedir?`, deg(90-bb), [deg(bb), deg(180-bb), deg(90), deg(90-bb+10)].filter(v=>v!==deg(90-bb)), {fig:elemFig2('Yükseklik',ls)}); }
+  const qs=[['Bir üçgende kaç kenarortay çizilebilir?','3',['1','2','6']],['Kenarortayların kesiştiği noktaya ne denir?','Ağırlık merkezi',['Diklik merkezi','İç teğet çemberin merkezi','Orta nokta']],['Açıortayların kesiştiği nokta neyin merkezidir?','İç teğet çemberin',['Ağırlık merkezinin','Çevrel çemberin','Hiçbirinin']],['Dik üçgende dik kenarlar aynı zamanda ne olur?','Yükseklik',['Kenarortay','Açıortay','Hipotenüs']],['Yükseklik, indiği kenarla kaç derecelik açı yapar?','90°',['45°','60°','180°']],['Kenarortay, indiği kenarı nasıl böler?','İki eş parçaya',['Üç eş parçaya','Dik açıyla','İki eş açıya']],['Açıortay neyi iki eş parçaya böler?','Açıyı',['Kenarı','Yüksekliği','Çevreyi']]];
+  const [q,ans,ds]=pick(qs); return mk(q,ans,ds); };
+
+/* Evren ve örneklem */
+const EVR=[['İstanbul’daki ortaokul öğrencilerinin','İstanbul’daki tüm ortaokul öğrencileri'],['bir okuldaki öğrencilerin','okuldaki tüm öğrenciler'],['Türkiye’deki 8. sınıf öğrencilerinin','Türkiye’deki tüm 8. sınıf öğrencileri'],['bir mahalledeki ailelerin','mahalledeki tüm aileler'],['bir şehirdeki kütüphane üyelerinin','şehirdeki tüm kütüphane üyeleri'],['bir fabrikadaki işçilerin','fabrikadaki tüm işçiler'],['bir ilçedeki öğretmenlerin','ilçedeki tüm öğretmenler'],['bir spor kulübündeki sporcuların','kulüpteki tüm sporcular']];
+const KONU=['uyku süresini','en sevdiği sporu','kitap okuma alışkanlığını','günlük ekran süresini','kahvaltı alışkanlığını','okula geliş şeklini','haftalık spor süresini','en sevdiği meyveyi'];
+GG('evrenornek').gen=function(L){ const E=ri(3,12)*100, S2=ri(2,9)*10;
+  if(L===1){ const ask=Math.random()<.5, [g1]=pick(EVR); return mk(`<span class="qs">${E} kişilik bir gruptan rastgele seçilen ${S2} kişiye anket yapıldı.</span>${ask?'Örneklem':'Evren'} kaç kişidir?`, ask?S2:E, [ask?E:S2, E+S2, E-S2, S2*2].filter(v=>v!==(ask?S2:E))); }
+  if(L===2){ const [g1,ev]=pick(EVR), konu=pick(KONU), n=ri(3,40)*10, ask=Math.random()<.5; const smp=`Seçilen ${n} kişi`;
+    return mk(`<span class="qs">${g1[0].toUpperCase()+g1.slice(1)} ${konu} araştırmak için aralarından ${n} kişi seçildi.</span>${ask?'Örneklem':'Evren'} nedir?`, ask?smp:ev[0].toUpperCase()+ev.slice(1), ask?[ev[0].toUpperCase()+ev.slice(1), `Seçilmeyen kişiler`, `Sadece ${konu.split(' ')[0]} ile ilgilenenler`]:[smp, `Seçilmeyen kişiler`, `Araştırmayı yapan kişiler`]); }
+  const biased=[['en sevilen sporu','sadece basketbol takımındaki öğrencilere'],['en sevilen yemeği','sadece bir pizzacının müşterilerine'],['kitap okuma alışkanlığını','sadece kütüphanedeki kişilere'],['en sevilen müzik türünü','sadece müzik korosundaki öğrencilere'],['spor yapma sıklığını','sadece spor salonundaki kişilere'],['en sevilen dersi','sadece matematik kulübü üyelerine'],['ekran süresini','sadece bilgisayar kulübü üyelerine'],['en sevilen hayvanı','sadece kedi sahibi olan kişilere']];
+  const fair=['her sınıftan kura ile seçilen öğrencilere','okul listesinden rastgele seçilen öğrencilere','farklı mahallelerden rastgele seçilen ailelere','okulun her sınıfından eşit sayıda rastgele seçilen öğrencilere','numaraları kurayla çekilen kişilere'];
+  const isB=Math.random()<.5, [konu,grp]=pick(biased); const q = isB ? `Okulun ${konu} bulmak için ${grp} soruldu.` : `Okulun ${pick(KONU.concat(biased.map(x=>x[0])))} bulmak için ${pick(fair)} soruldu.`;
+  return {q:`<span class="qs">Bu örneklem nasıldır?</span>${q}`, choices:['Yanlı (taraflı)','Yansız (temsil edici)'], correct:isB?0:1, fig:''}; };
+
+/* Dörtgenler */
+function quadShape(nm){ let ps;
+  if(nm==='Kare'){ const s=ri(70,110); ps=[[0,0],[s,0],[s,s],[0,s]]; }
+  else if(nm==='Dikdörtgen'){ const w=ri(130,180), h=ri(55,95); ps=[[0,0],[w,0],[w,h],[0,h]]; }
+  else if(nm==='Paralelkenar'){ const b=ri(110,160), h=ri(60,90), o=ri(25,55)*pick([1,-1]); ps=[[Math.max(0,o),0],[Math.max(0,o)+b,0],[Math.max(0,o)+b-o,h],[Math.max(0,o)-o,h]]; }
+  else if(nm==='Eşkenar dörtgen'){ const d1=ri(120,170), d2=ri(70,105); ps=[[d1/2,0],[d1,d2/2],[d1/2,d2],[0,d2/2]]; }
+  else if(nm==='Dik yamuk'){ const bt=ri(140,180), tp=ri(70,110), h=ri(60,90); ps=[[0,0],[tp,0],[bt,h],[0,h]]; }
+  else { const bt=ri(140,190), tp=ri(55,100), h=ri(60,90), o=ri(10,bt-tp-10); ps=[[o,0],[o+tp,0],[bt,h],[0,h]]; }
+  const ang=ri(-15,15); const cx=90, cy=50; const r=ps.map(([x,y])=>[cx+(x-cx)*Math.cos(P(ang))-(y-cy)*Math.sin(P(ang)), cy+(x-cx)*Math.sin(P(ang))+(y-cy)*Math.cos(P(ang))]);
+  return bboxSvg(r, `<path d="M${ptsStr(r)}Z" fill="#DBEAFE" stroke="${N}" stroke-width="4" stroke-linejoin="round"/>`, 16); }
+const QPROPS={Kare:[4,2],Dikdörtgen:[4,2],Paralelkenar:[0,2],'Eşkenar dörtgen':[0,2],Yamuk:[0,1],'Dik yamuk':[2,1]};
+GG('dortgen').gen=function(L){ const names=['Kare','Dikdörtgen','Paralelkenar','Eşkenar dörtgen','Yamuk'];
+  if(L===1){ const k=pick(['Kare','Dikdörtgen','Paralelkenar','Yamuk']); return mk('Bu dörtgenin adı nedir?', k, shuffle(names.filter(n=>n!==k)), {fig:quadShape(k)}); }
+  if(L===2){ const t=pick(['ad','dik','par']); const nm=pick(Object.keys(QPROPS));
+    if(t==='ad'){ const k=nm==='Dik yamuk'?'Yamuk':nm; return mk('Bu dörtgenin adı nedir?', k, shuffle(names.filter(n=>n!==k)), {fig:quadShape(nm)}); }
+    if(t==='dik') return mk('Bu dörtgenin kaç dik açısı vardır?', QPROPS[nm][0], [0,1,2,3,4].filter(v=>v!==QPROPS[nm][0]), {fig:quadShape(nm)});
+    return mk('Bu dörtgende kaç çift paralel kenar vardır?', QPROPS[nm][1], [0,1,2,4].filter(v=>v!==QPROPS[nm][1]), {fig:quadShape(nm)}); }
+  if(Math.random()<.55){ const t=ri(0,2); if(t===0){ const a=ri(40,85), b=180-a; return mk(`<span class="qs">Paralelkenar</span>Bir açısı ${a}° ise komşu açısı kaç derecedir?`, deg(b), [deg(a), deg(90-a+90>180?a+10:360-2*a), deg(b+10), deg(90)].filter(v=>v!==deg(b))); }
+    if(t===1){ const a=ri(50,130), b=ri(50,130), c=ri(40,120); const d=360-a-b-c; if(d<=20||d>=200) return this.gen(L); return mk(`<span class="qs">Dörtgen</span>Üç iç açısı ${a}°, ${b}° ve ${c}° ise dördüncü açı kaç derecedir?`, deg(d), [deg(180-d>0?180-d:d+20), deg(d+10), deg(d-10), deg(360-d)].filter(v=>v!==deg(d))); }
+    const a=ri(3,15), b=ri(3,15); return mk(`<span class="qs">Dikdörtgen</span>Kenarları ${a} cm ve ${b} cm ise çevresi kaç cm?`, (2*(a+b))+' cm', [a*b, a+b, 2*a+b, 4*a].filter(v=>v!==2*(a+b)).map(v=>v+' cm')); }
+  const qs=[['Bütün kenarları eşit ve bütün açıları dik olan dörtgen','Kare'],['Karşılıklı kenarları eşit, bütün açıları dik ama kenarları eşit olmayan dörtgen','Dikdörtgen'],['Bütün kenarları eşit ama açıları dik olmayan dörtgen','Eşkenar dörtgen'],['Yalnızca bir çift karşılıklı kenarı paralel olan dörtgen','Yamuk'],['Karşılıklı kenarları paralel ve eşit, açıları dik olmayan, komşu kenarları eşit olmayan dörtgen','Paralelkenar'],['Köşegenleri birbirini dik ortalayan ve açıları dik olmayan dörtgen','Eşkenar dörtgen'],['Köşegenleri eşit uzunlukta olan ve kenarları eşit olmayan, açıları dik dörtgen','Dikdörtgen'],['Köşegenleri eşit ve birbirine dik olan dörtgen','Kare'],['İki kenarı paralel, diğer iki kenarı paralel olmayan dörtgen','Yamuk'],['Karşılıklı açıları eşit, komşu açılarının toplamı 180° olan, kenarları eşit olmayan dörtgen','Paralelkenar']];
+  const [q,a]=pick(qs); return mk(`<span class="qs">Hangi dörtgen?</span>${q}`, a, shuffle(names.filter(n=>n!==a))); };
+
+/* Ayna harfler: kelimeler */
+const _ayna=GG('aynaharf').gen;
+GG('aynaharf').gen=function(L){ if(Math.random()<(L===3?.6:.35)){ const yes=['ATA','OTO','MUM','AMA','TAT','HAH','TOT','MAM','OHO','AHA','VUV','WOW','TUT','YAY','AYA','ÜTÜ','UTU','MOM','TIT','HOH','AVA','YOY'], no=['ANA','ALA','ADA','KEK','SES','ELE','BEBEK','KAK','NAN','ZAZ','PAP','RAR'];
+    const big=s=>`<span style="font-size:1.2em;font-family:Arial,sans-serif;font-weight:700;letter-spacing:.06em">${s}</span>`; const a=pick(yes); return mk('Hangi kelimenin <b>dikey</b> simetri ekseni vardır?', big(a), shuffle(no).slice(0,5).map(big)); }
+  return _ayna.call(this,L); };
+
+/* Pisagor: ölçeklenmiş üçlüler, kenar yönü değişken */
+const TRIPS=[]; for(const [a,b,c] of [[3,4,5],[5,12,13],[8,15,17],[7,24,25],[20,21,29],[9,40,41]]) for(let k=1;k<=6;k++) if(c*k<=50) TRIPS.push([a*k,b*k,c*k]);
+const _pis=GG('pisagor').gen;
+GG('pisagor').gen=function(L){ if(L===1){ let [a,b,c]=pick(TRIPS.filter(t=>t[2]<=30)); if(Math.random()<.5) [a,b]=[b,a]; return mk(`<span class="qs">Dik üçgen</span>Hipotenüs kaç cm?`, c+' cm', [a+b, c+1, c-1, c+2, b+1].map(x=>x+' cm'), {fig:pisFig(a,b,c,c)}); }
+  if(L===2){ let [a,b,c]=pick(TRIPS); if(Math.random()<.5) [a,b]=[b,a]; const unk=pick([a,b]), other=unk===a?b:a; return mk(`<span class="qs">Dik üçgen</span>Soru işaretli kenar kaç cm?`, unk+' cm', [c-other, unk+1, unk-1, unk+2, c+other].filter(x=>x>0&&x!==unk).map(x=>x+' cm'), {fig:pisFig(a,b,c,unk)}); }
+  return _pis.call(this,L); };
+const _pp=GG('pisagorproblem').gen;
+GG('pisagorproblem').gen=function(L){ if(L<3){ const [a,b,c]=pick(L===1?TRIPS.filter(t=>t[2]<=30):TRIPS); const ctx=L===1?pick(['dik','tv','park']):pick(['merdiven','ip','direk']);
+    if(ctx==='dik') return mk(`<span class="qs">Problem</span>Kenarları ${a} cm ve ${b} cm olan dikdörtgenin köşegeni kaç cm?`, c+' cm', [a+b, c+1, c-1, c+2].map(v=>v+' cm'));
+    if(ctx==='tv') return mk(`<span class="qs">Problem</span>Eni ${b} cm, boyu ${a} cm olan bir tabletin ekran köşegeni kaç cm?`, c+' cm', [a+b, c+1, c-1, c+3].map(v=>v+' cm'));
+    if(ctx==='park') return mk(`<span class="qs">Problem</span>Dikdörtgen şeklindeki parkın kenarları ${a} m ve ${b} m. Bir köşeden karşı köşeye çapraz yürüyen kaç m yürür?`, c+' m', [a+b, c+2, c-1, 2*c].map(v=>v+' m'));
+    if(ctx==='merdiven') return mk(`<span class="qs">Problem</span>${c} m uzunluğundaki merdiven duvara yaslanmıştır. Alt ucu duvardan ${a} m uzakta ise üst ucu yerden kaç m yüksektedir?`, b+' m', [c-a, c+a, b+1, b-1].filter(v=>v>0&&v!==b).map(v=>v+' m'));
+    if(ctx==='ip') return mk(`<span class="qs">Problem</span>${b} m yüksekliğindeki bir direğin tepesinden yere gergin bir ip bağlanıyor. İp direğin dibinden ${a} m uzakta yere bağlıysa ipin uzunluğu kaç m?`, c+' m', [a+b, c+1, c-1, b-a>0?b-a:c+2].map(v=>v+' m'));
+    return mk(`<span class="qs">Problem</span>Bir uçurtmanın ipi ${c} m. Uçurtma, ipi tutan çocuktan yatayda ${a} m uzaktaysa yerden kaç m yüksektedir? (çocuğun boyunu yok sayın)`, b+' m', [c-a, c+a, b+2, b-1].filter(v=>v>0&&v!==b).map(v=>v+' m')); }
+  return _pp.call(this,L); };
+
+/* Simetri ekseni: daha çok şekil, dönmüş çizimler */
+function starFig(n){ const pts=[]; for(let i=0;i<2*n;i++){ const r=i%2?38:80, a=P(-90+i*180/n); pts.push([100+r*Math.cos(a),100+r*Math.sin(a)]); } return svg('10 10 180 180', `<path d="M${ptsStr(pts)}Z" fill="#FDE68A" stroke="${N}" stroke-width="4" stroke-linejoin="round"/>`); }
+GG('simetriekseni').gen=function(L){ const PNm={3:'Eşkenar üçgen',4:'Kare',5:'Düzgün beşgen',6:'Düzgün altıgen',7:'Düzgün yedigen',8:'Düzgün sekizgen',9:'Düzgün dokuzgen',10:'Düzgün ongen'};
+  const items=[]; const nMax=L===1?6:10; for(let n=3;n<=nMax;n++) items.push([PNm[n],()=>regFig(n),n]);
+  items.push(['Dikdörtgen',()=>quadShape('Dikdörtgen'),2]);
+  if(L>1){ items.push(['Paralelkenar',()=>quadShape('Paralelkenar'),0],['Eşkenar dörtgen',()=>quadShape('Eşkenar dörtgen'),2],['İkizkenar yamuk',()=>{ const bt=ri(150,190), tp=ri(60,110), h=ri(60,90), o=(bt-tp)/2; const ps=[[o,0],[o+tp,0],[bt,h],[0,h]]; return bboxSvg(ps,`<path d="M${ptsStr(ps)}Z" fill="#FBCFE8" stroke="${N}" stroke-width="4" stroke-linejoin="round"/>`,16); },1],['İkizkenar üçgen',()=>{ const w=ri(120,180), h=ri(80,130); const ps=[[0,h],[w,h],[w/2,0]]; return bboxSvg(ps,`<path d="M${ptsStr(ps)}Z" fill="#FBCFE8" stroke="${N}" stroke-width="4" stroke-linejoin="round"/>`,16); },1]); }
+  if(L===3){ for(let n=4;n<=8;n++) items.push([`${n} köşeli yıldız`,()=>starFig(n),n]); items.push(['Daire',()=>svg('0 0 200 200',`<circle cx="100" cy="100" r="80" fill="#FBCFE8" stroke="${N}" stroke-width="4"/>`),'Sonsuz'],['Çeşitkenar üçgen',()=>{ const ps=[[0,ri(90,120)],[ri(150,190),ri(100,130)],[ri(30,70),0]]; return bboxSvg(ps,`<path d="M${ptsStr(ps)}Z" fill="#FBCFE8" stroke="${N}" stroke-width="4" stroke-linejoin="round"/>`,16); },0]); }
+  const [nm,f,v]=pick(items); const ans=String(v);
+  return mk(`<span class="qs">${nm}</span>Bu şeklin kaç simetri ekseni vardır?`, ans, shuffle(['0','1','2','3','4','5','6','8','10','Sonsuz'].filter(x=>x!==ans)), {fig:f()}); };
+
+/* Orta dikme ve açıortay */
+const _od=GG('ortadikme').gen;
+GG('ortadikme').gen=function(L){ if(L===2 && Math.random()<.5) return _od.call(this,1);
+  if(L===2){ const qs=[['Bir doğru parçasının orta dikmesi üzerindeki her nokta, doğru parçasının uç noktalarına …','eşit uzaklıktadır',['farklı uzaklıktadır','dik açı yapar','paraleldir']],['Orta dikme, doğru parçasını …','iki eş parçaya böler ve ona diktir',['iki eş açıya böler','üç eş parçaya böler','paralel keser']],['Açıortay üzerindeki her nokta, açının kollarına …','eşit uzaklıktadır',['eşit açılıdır','paraleldir','dik değildir']],['Açıortay, açıyı …','iki eş açıya böler',['iki eş parçaya böler','dik keser','üçe böler']],['Orta dikme ile doğru parçası arasındaki açı kaç derecedir?','90°',['45°','180°','60°']],['Orta dikme doğru parçasını hangi noktadan keser?','Orta noktasından',['Uç noktasından','Herhangi bir noktadan','Kesmez']],['Bir açının kaç açıortayı vardır?','1',['2','0','Sonsuz']],['Bir doğru parçasının kaç orta dikmesi vardır (aynı düzlemde)?','1',['2','0','4']],['Pergel ve cetvelle orta dikme çizerken pergel açıklığı nasıl olmalıdır?','Doğru parçasının yarısından büyük',['Yarısından küçük','Tam yarısı kadar','Sıfır']],['Açıortay üzerindeki bir noktanın açının kollarına uzaklığı 5 cm ise diğer kola uzaklığı?','5 cm',['10 cm','2,5 cm','Bilinemez']]];
+    const [q,a,ds]=pick(qs); return mk(q,a,ds); }
+  return _od.call(this,L); };
+
+/* Küp sayma: kolayda daha geniş taban */
+const _ks=GG('kupsay').gen;
+GG('kupsay').gen=function(L){ if(L!==1) return _ks.call(this,L); const nx=pick([2,3]), ny=nx===2?3:2, H=[]; for(let x=0;x<nx;x++){ H.push([]); for(let y=0;y<ny;y++){ const cap=Math.min(x?H[x-1][y]:2, y?H[x][y-1]:2); H[x].push(ri(1,Math.max(1,cap))); } }
+  const tot=H.flat().reduce((a,b)=>a+b,0); return mk('Bu yapı kaç birim küpten oluşur?', tot, posOnly([tot+1, tot-1, tot+2, nx*ny]).filter(v=>v>0&&v!==tot), {fig:stackFig(H)}); };
+
+/* Açılar ve Şekiller: dönmüş açılar, daha çok açı */
+const _at=GG('acituru').gen;
+GG('acituru').gen=function(L){ if(L===1 || Math.random()<.35){ const types=[['Dar açı',()=>ri(2,17)*5],['Dik açı',()=>90],['Geniş açı',()=>ri(19,35)*5],['Doğru açı',()=>180]]; const k=ri(0,3); let a=types[k][1](); if(k===0&&a>=90) a=ri(2,17)*5; const rot=ri(-50,50);
+    const f=angFig(a); return {q:'Bu açı hangi türdendir?', choices:types.map(x=>x[0]), correct:k, fig:f.replace(/(<svg[^>]*>)/,`$1<g transform="rotate(${rot} 40 150)">`).replace('</svg>','</g></svg>').replace(/viewBox="[^"]*"/,'viewBox="-100 10 300 280"')}; }
+  return _at.call(this,L); };
+
+/* Geometrik cisimler: daha çok soru */
+const _cs=GG('cisimler').gen;
+GG('cisimler').gen=function(L){ if(L!==2) return _cs.call(this,L); const n=ri(3,8), nm={3:'üçgen',4:'kare',5:'beşgen',6:'altıgen',7:'yedigen',8:'sekizgen'}[n]; const t=ri(0,4);
+  if(t===0) return mk(`Tabanı ${nm} olan dik prizmanın kaç yan yüzü vardır?`, n, [n+2, n+1, 2*n, n-1].filter(v=>v!==n));
+  if(t===1) return mk(`Tabanı ${nm} olan dik piramidin kaç yan yüzü vardır?`, n, [n+1, n+2, 2*n, n-1].filter(v=>v!==n));
+  if(t===2) return mk(`Tabanı ${nm} olan dik prizmanın yan yüzleri hangi şekildir?`, 'Dikdörtgen', ['Üçgen','Daire','Yamuk',nm[0].toUpperCase()+nm.slice(1)].filter(x=>x!=='Dikdörtgen'));
+  if(t===3) return mk(`Tabanı ${nm} olan dik piramidin yan yüzleri hangi şekildir?`, 'Üçgen', ['Dikdörtgen','Daire','Kare']);
+  return _cs.call(this,2); };
+
+/* Çevre Yürüyüşü zor seviye */
+const _cy=GG('cevreyurur').gen;
+GG('cevreyurur').gen=function(L){ if(L===3 && Math.random()<.5){ const A=pick([12,16,18,20,24,28,30,32,36,40,42,48]); let best=[1,A]; for(let a=1;a*a<=A;a++) if(A%a===0) best=[a,A/a]; const p=2*(best[0]+best[1]);
+    return mk(`<span class="qs">Kenarları tam sayı olan dikdörtgenler</span>Alanı ${A} cm² olan dikdörtgenlerden çevresi en küçük olanın çevresi kaç cm?`, p+' cm', [2*(1+A), A, p+2, 4*best[0]].filter(v=>v!==p).map(v=>v+' cm')); }
+  return _cy.call(this,L); };
+
+/* Veri türleri: daha geniş listeler */
+GG('veriturleri').gen=function(L){ const K=['Öğrencilerin göz rengi','En sevilen meyve','Doğduğu ay','Okula geliş şekli (yaya, otobüs…)','En sevilen spor dalı','Tişört rengi','Kan grubu','En sevilen ders','Evcil hayvan türü','Ayakkabı markası','Doğduğu şehir','En sevilen mevsim','Kullandığı telefon rengi','Tuttuğu takım'];
+  const NK=['Kardeş sayısı','Bir sınıftaki öğrenci sayısı','Okunan kitap sayısı','Ailedeki birey sayısı','Bir haftada içilen süt şişesi sayısı','Evdeki oda sayısı','Bir maçta atılan gol sayısı','Sınıftaki pencere sayısı','Bir ayda gidilen sinema sayısı','Bahçedeki ağaç sayısı'];
+  const NS=['Boy uzunluğu','Vücut ağırlığı','Koşu süresi','Günlük sıcaklık','Bir bitkinin boyu','Okula yürüme süresi','Yağış miktarı','Bir şişedeki su miktarı','Uyku süresi','Ayak uzunluğu'];
+  if(L===1){ const isK=Math.random()<.5; return {q:`<span class="qs">Bu veri hangi türdendir?</span>${pick(isK?K:[...NK,...NS])}`, choices:['Kategorik','Sayısal (nicel)'], correct:isK?0:1, fig:''}; }
+  if(L===2){ const k=ri(0,2); return {q:`<span class="qs">Bu veri hangi türdendir?</span>${pick([K,NK,NS][k])}`, choices:['Kategorik','Nicel (kesikli)','Nicel (sürekli)'], correct:k, fig:''}; }
+  const yes=['Sınıfımızdaki öğrencilerin en sevdiği renk nedir?','Okulumuzdaki öğrenciler günde kaç saat uyuyor?','Sınıftaki öğrencilerin kaç kardeşi var?','Mahallemizdeki ailelerin kaç evcil hayvanı var?','Sınıfımızdakiler okula nasıl geliyor?','Öğrenciler haftada kaç kitap okuyor?','Okuldaki öğretmenlerin en sevdiği spor hangisi?','Sınıftaki öğrencilerin boyları ne kadar?','Öğrenciler okula kaç dakikada geliyor?','Sınıftakiler hangi mevsimi seviyor?','Ailelerin kaç arabası var?','Öğrencilerin en sevdiği meyve hangisi?','Arkadaşlarımız haftada kaç saat spor yapıyor?','Öğrencilerin ayakkabı numarası kaç?'], no=['Ali kaç yaşında?','Okulumuzun kaç kapısı var?','Bugün hava kaç derece?','Öğretmenimizin adı ne?','Sınıfımızın kapısı ne renk?','Türkiye’nin başkenti neresi?','Okulumuz kaç yılında açıldı?','Bir haftada kaç gün var?','Bir yılda kaç ay var?','Benim kaç kardeşim var?','Okulun bahçesinde kaç bank var?','Bu sabah okula kaçta geldim?','Ayşe’nin en sevdiği renk ne?'];
+  const isY=Math.random()<.5; return {q:`<span class="qs">Bu bir istatistiksel araştırma sorusu mu?</span>“${pick(isY?yes:no)}”`, choices:['Evet, cevaplar değişkenlik gösterir','Hayır, tek bir cevabı var'], correct:isY?0:1, fig:''}; };
+
+/* Silindir problemleri orta seviye */
+const _sp=GG('silindirproblem').gen;
+GG('silindirproblem').gen=function(L){ if(L!==2) return _sp.call(this,L); const R=pick([5,10,15,20]), H=pick([10,20,30,40,50,60]); const lit=3*R*R*H/1000; const obj=pick(['kova','su deposu','bardak','tencere','vazo']);
+  return mk(`<span class="qs">(π = 3)</span>Yarıçapı ${R} cm, yüksekliği ${H} cm olan silindir şeklindeki ${obj} kaç litre su alır?`, dec(lit)+' L', [lit*10, lit/10, 3*R*H/100, lit*2, lit+1].map(v=>dec(v)+' L').filter(x=>x!==dec(lit)+' L')); };
+
+/* Olasılık Dili orta seviye: kart ve para eklendi */
+const _ol=GG('olasilikdili').gen;
+GG('olasilikdili').gen=function(L){ if(L===2 && Math.random()<.55){ const nC=ri(8,20); const evs=[['çift sayı',n=>n%2===0],['tek sayı',n=>n%2===1],[`${nC+1} numaralı kart`,n=>n===nC+1],['1 numaralı kart',n=>n===1],[`${nC} ya da daha küçük bir sayı`,n=>n<=nC],[`${Math.ceil(nC/2)+2} ya da daha büyük bir sayı`,n=>n>=Math.ceil(nC/2)+2],['0 numaralı kart',n=>n===0],[`${nC-2} ya da daha küçük bir sayı`,n=>n<=nC-2]];
+    const [nm,f]=pick(evs); const k=Array.from({length:nC},(_,i)=>i+1).filter(f).length; return {q:`<span class="qs">1’den ${toN(nC)} kadar numaralandırılmış kartlardan biri çekiliyor.</span>Çekilen kartın ${nm} olması`, choices:OD, correct:odCat(k,nC), fig:''}; }
+  return _ol.call(this,L); };
+
+/* Yüzey alanı kolay seviye */
+const _ya=GG('yuzeyalani').gen;
+GG('yuzeyalani').gen=function(L){ if(L===1 && Math.random()<.5){ const a=ri(2,15); if(Math.random()<.5) return mk(`<span class="qs">Küp</span>Bir yüzünün alanı ${a*a} cm² olan küpün yüzey alanı kaç cm²?`, (6*a*a)+' cm²', [4*a*a, a*a*a, 6*a, a*a+6].map(v=>v+' cm²'));
+    return mk(`<span class="qs">Küp</span>Yüzey alanı ${6*a*a} cm² olan küpün bir yüzünün alanı kaç cm²?`, (a*a)+' cm²', [6*a, a*a*2, a, a*a+a].filter(v=>v!==a*a).map(v=>v+' cm²')); }
+  return _ya.call(this,L); };
+
+/* Kesin mi, İmkânsız mı: üretilen olaylar */
+const _km=GG('kesinmi').gen;
+GG('kesinmi').gen=function(L){ if(Math.random()<(L>1?.6:.5)){ const t=ri(0,3);
+    if(t===0){ const k=ri(1,10); return {q:`<span class="qs">Bu olay nasıldır?</span>Bir zar atıldığında ${k} gelmesi`, choices:['Kesin','Olası','İmkânsız'], correct:k<=6?1:2, fig:''}; }
+    if(t===1){ const k=ri(1,9); return {q:`<span class="qs">Bu olay nasıldır?</span>Bir zar atıldığında ${k} ya da daha küçük bir sayı gelmesi`, choices:['Kesin','Olası','İmkânsız'], correct:k>=6?0:1, fig:''}; }
+    if(t===2){ const n=ri(5,15), k=ri(1,n+5); return {q:`<span class="qs">Bu olay nasıldır?</span>1’den ${toN(n)} kadar numaralı kartlardan ${k} numaralı kartın çekilmesi`, choices:['Kesin','Olası','İmkânsız'], correct:k<=n?1:2, fig:''}; }
+    const r=ri(0,5), b=ri(0,5); if(r+b===0) return this.gen(L); return {q:`<span class="qs">Bu olay nasıldır?</span>${r} kırmızı ve ${b} mavi top bulunan torbadan kırmızı top çekilmesi`, choices:['Kesin','Olası','İmkânsız'], correct:r===0?2:b===0?0:1, fig:''}; }
+  return _km.call(this,L); };
+
+/* Adil oyun: kartlar ve iki para */
+const _ad=GG('adiloyun').gen;
+GG('adiloyun').gen=function(L){ const ch=['Adil','Ali’nin lehine','Ayşe’nin lehine'];
+  if(L>1 && Math.random()<.5){ if(Math.random()<.35){ const r=pick([['İki para atılıyor. İkisi de yazı gelirse Ali, ikisi de tura gelirse Ayşe kazanıyor.',0],['İki para atılıyor. Paralar aynı gelirse Ali, farklı gelirse Ayşe kazanıyor.',0],['İki para atılıyor. En az bir yazı gelirse Ali, iki tura gelirse Ayşe kazanıyor.',1],['İki para atılıyor. İki yazı gelirse Ali, diğer durumlarda Ayşe kazanıyor.',2]]); return {q:`<span class="qs">Oyun nasıldır?</span>${r[0]}`, choices:ch, correct:r[1], fig:''}; }
+    const n=ri(8,20), a=ri(2,Math.floor(n/2)), b=ri(Math.floor(n/2)+1,n); const A=a, B=n-b+1; return {q:`<span class="qs">1’den ${toN(n)} kadar numaralı kartlardan biri çekiliyor.</span>${a} ya da daha küçük gelirse Ali, ${b} ya da daha büyük gelirse Ayşe kazanıyor. Oyun nasıldır?`, choices:ch, correct:A===B?0:A>B?1:2, fig:''}; }
+  return _ad.call(this,L); };
+
+/* Alan birimleri zor seviye */
+const _ab=GG('alanbirim').gen;
+GG('alanbirim').gen=function(L){ if(L===3 && Math.random()<.6){ const t=ri(0,2);
+    if(t===0){ const a=ri(2,9), b=ri(2,9); return mk(`<span class="qs">Dikdörtgen</span>Kenarları ${a} m ve ${b} m olan dikdörtgenin alanı kaç dm²?`, fmtN(a*b*100)+' dm²', [a*b, a*b*10, a*b*10000, (a+b)*100].map(v=>fmtN(v)+' dm²')); }
+    if(t===1){ const k=ri(5,95)*10; return mk(`${fmtN(k)} dm² = ? m²`, dec(k/100)+' m²', [k/10, k/1000, k*100].map(v=>dec(v)+' m²')); }
+    const c=ri(2,30)*1000; return mk(`${fmtN(c)} cm² = ? dm²`, fmtN(c/100)+' dm²', [c/10, c/1000, c/10000].map(v=>dec(v)+' dm²')); }
+  return _ab.call(this,L); };
+
+/* Asal çarpanlar: üretilen sayılar */
+const SP=[2,3,5,7,11,13];
+GG('asalcarpan').gen=function(L){ let n; do{ const k=L===1?2:L===2?ri(2,3):ri(3,4); n=1; for(let i=0;i<k;i++) n*=pick(L===1?[2,3,5,7,11]:SP.slice(0,L===2?5:6)); }while(n<(L===1?6:L===2?20:60) || n>(L===1?100:L===2?300:600) || isPrime(n));
+  const ps=[]; for(let p=2;p<=n;p++) if(n%p===0&&isPrime(p)) ps.push(p);
+  if(L===1){ const ans=pick(ps); const ds=[4,6,8,9,10,12,7,11,13,5,3,2].filter(x=>!(n%x===0&&isPrime(x))); return mk(`${n} sayısının asal çarpanlarından biri hangisidir?`, ans, shuffle(ds)); }
+  if(L===2) return mk(`${n} sayısının asal çarpanları hangileridir?`, `{${ps.join(', ')}}`, [`{${ps.concat([pick([7,11,13].filter(x=>!ps.includes(x)))]).sort((a,b)=>a-b).join(', ')}}`, `{${ps.slice(1).join(', ')||'1'}}`, `{1, ${ps.join(', ')}}`, `{${ps.map(p=>p===2?4:p).join(', ')}}`]);
+  return mk(`${n} sayısının asal çarpanlarına ayrılmış hâli hangisidir?`, facStr(n), [facStr(n*2), facStr(n/ps[0]*(ps[1]||3)), facStr(n*3), facStr(n/ps[ps.length-1]*7)].filter(s=>s!==facStr(n))); };
+
+/* Karekök ve üslü kolay seviyeler */
+const _kk=GG('karekok').gen;
+GG('karekok').gen=function(L){ if(L===1 && Math.random()<.5){ const n=ri(2,15); if(Math.random()<.5) return mk(`Karekökü ${n} olan sayı kaçtır?`, n*n, [2*n, n*n+n, (n+1)**2, n*n-1].filter(v=>v!==n*n));
+    return mk(`<span class="qs">Alanı ${n*n} cm² olan karenin</span>bir kenarı kaç cm?`, n+' cm', [n*n/2, n+1, 4*n, n-1].filter(v=>Number.isInteger(v)&&v>0&&v!==n).map(v=>v+' cm')); }
+  return _kk.call(this,L); };
+const _us=GG('uslu').gen;
+GG('uslu').gen=function(L){ if(L===1 && Math.random()<.4){ const a=ri(2,9), n=ri(2,5); const prod=Array(n).fill(a).join(' · '); return mk(`${a}${sup(n)} hangi çarpıma eşittir?`, prod, [`${a} · ${n}`, Array(a>n?n:a).fill(n).join(' · ')||`${n} · ${a}`, Array(n+1).fill(a).join(' · '), `${a} + ${a}`]); }
+  return _us.call(this,L); };
+
+/* Kareli alan: farklı konumlar */
+const _kar=GG('karelialan').gen;
+GG('karelialan').gen=function(L){ if(L!==1) return _kar.call(this,L); const a=ri(2,7), b=ri(2,5), ox=ri(0,10-a), oy=ri(0,7-b); const cells=[]; for(let c=0;c<a;c++) for(let r=0;r<b;r++) cells.push([c+ox,r+oy]);
+  return mk('Boyalı şeklin alanı kaç birim kare?', a*b, posOnly([2*(a+b), a+b, a*b+1, a*b-1, a*b+a]).filter(v=>v>0&&v!==a*b), {fig:gridFig(cells)}); };
+
+/* Açı Dedektifi zor seviye */
+const _ad2=GG('acidedektif').gen;
+GG('acidedektif').gen=function(L){ if(L===3 && Math.random()<.35){ const n=pick([5,6,7,8,9,10,12]); const Ssum=(n-2)*180; return mk(`<span class="qs">Çokgenler</span>İç açıları toplamı ${Ssum}° olan çokgen kaç kenarlıdır?`, n, [n+1, n-1, n+2, Ssum/180].filter(v=>v>2&&v!==n)); }
+  return _ad2.call(this,L); };
+
+/* ===== Tüm soru oyunlarında tekrar koruması (son 30 soru) ===== */
+GAMES.forEach(g=>{ if(!g.gen||g._nr) return; const raw=g.gen; const hist=[]; g._nr=true;
+  let depth=0;
+  g.gen=function(L){ if(depth) return raw.call(this,L); depth++; try{ let q, k, t=0, bq=null, bk=null, bi=1e9; do{ q=raw.call(this,L); k=strip(q.q)+'|'+strip(q.choices[q.correct])+'|'+(q.fig||''); const ix=hist.lastIndexOf(k); if(ix<0){ bq=null; break; } if(ix<bi){ bi=ix; bq=q; bk=k; } }while(++t<60); if(bq){ q=bq; k=bk; hist.splice(hist.indexOf(k),1); } hist.push(k); if(hist.length>30) hist.shift(); return q; } finally { depth--; } }; });
 
 /* ================= MÜFREDAT SIRASI =================
    5, 6, 7 ve 8. sınıf: Türkiye Yüzyılı Maarif Modeli Ortaokul Matematik Dersi Öğretim Programı tema sırası
