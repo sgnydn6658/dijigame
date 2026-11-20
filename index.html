@@ -228,6 +228,13 @@ sup{font-size:.55em;vertical-align:.85em;line-height:0}
 .mdb b{font-size:clamp(14px,2vmin,19px);font-weight:700}
 .mdb small{font-family:var(--fb);font-weight:700;font-size:11px;color:var(--muted);text-align:center;line-height:1.2}
 .mdb.on{border-color:var(--gd);box-shadow:0 5px 0 var(--gd);transform:translateY(-2px)}
+.tsel{display:flex;gap:clamp(6px,1.2vmin,10px);margin:0 0 14px;flex-wrap:wrap}
+.tsb{flex:1;min-width:0;border:3px solid transparent;background:#fff;border-radius:14px;padding:7px 8px;box-shadow:0 4px 0 rgba(43,45,66,.15);font-family:var(--fd);font-weight:700;font-size:clamp(13px,1.9vmin,17px);display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.tsb small{font-family:var(--fb);font-size:11px;color:var(--muted);font-weight:700}
+.tsb.on{border-color:var(--gd);box-shadow:0 4px 0 var(--gd);transform:translateY(-2px)}
+.pill.btnp{cursor:pointer;background:#22C55E;color:#fff}.pill.btnp small{color:#E8FFF0}
+.rctl .bigbtn.ok{background:#22C55E}
+@media (max-width:600px){.tsb small{display:none}}
 @media (max-width:600px){.modes{grid-template-columns:repeat(2,1fr)}.mdb small{display:none}}
 .mode{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vh,12px);min-height:0}
 .mq{background:#fff;border-radius:20px;padding:8px 16px;box-shadow:0 5px 0 rgba(43,45,66,.1);display:flex;align-items:center;justify-content:center;gap:16px;max-width:1100px;width:100%;flex:none}
@@ -2384,13 +2391,27 @@ function every(fn,ms){ const s=S.sess; const t=setInterval(()=>{ if(s!==S.sess){
 function reset(){ S.sess++; S.timers.forEach(t=>{clearTimeout(t);clearInterval(t)}); S.timers=[]; S.onKey=null; S.onResize=null; }
 const stage=()=>$('#stage');
 function setPill(which,label,val){ $('#p'+which+'l').textContent=label; $('#p'+which+'v').textContent=val; $('#p'+which).classList.remove('hidden'); }
-function hidePills(){ $('#pA').classList.add('hidden'); $('#pB').classList.add('hidden'); $('#gStreak').textContent=''; $('#tbar').classList.add('hidden'); }
+function hidePills(){ $('#pA').classList.add('hidden'); $('#pB').classList.add('hidden'); $('#pB').classList.remove('btnp'); $('#pB').onclick=null; $('#gStreak').textContent=''; $('#tbar').classList.add('hidden'); }
 function setStreak(){ $('#gStreak').textContent = S.streak>=3 ? `🔥 ${S.streak}` : ''; }
 function addScore(n){ S.score=Math.max(0,S.score+n); $('#pAv').textContent=S.score; }
 function floatText(t,color){ const d=document.createElement('div'); d.className='float'; d.textContent=t; if(color) d.style.color=color; stage().appendChild(d); setTimeout(()=>d.remove(),950); }
 function good(base=10){ S.streak++; S.correct++; const b=S.streak>=3?5:0; addScore(base+b); setStreak(); sfx('ok'); floatText('+'+(base+b)); }
 function bad(pen=0){ S.streak=0; S.wrong++; if(pen) { addScore(-pen); floatText('−'+pen,'var(--bad)'); } setStreak(); sfx('bad'); }
-function countdown(sec,onEnd){ let left=sec; $('#tbar').classList.remove('hidden'); const f=$('#tfill'); f.style.transition='none'; f.style.width='100%'; void f.offsetWidth; f.style.transition='';
+const HEAVY=new Set(['cember','yuzeyalani','hacim','hacimproblem','silindirproblem','pisagor','pisagorproblem','denklemkur','kesirproblem','ortalamaproblem','karzarar','bahce','yamukalan','alancevre','benzersekil','dogrudenklem','egim','islemoncelik','kesirislem','rasyonel','ozdeslik','bilimsel','uslu','karekok','ebobekok','oran','yuzde','birimfiyat','denklem','eksikkenar','devirli','alanbirim','olcu','dortgenaci','acidedektif','paralel','orantitablo','cebirsel','esitsizlik','fonksiyon','eksiksayi','govdeyaprak']);
+const QLIMIT=10;
+const timePref=g=>store.get('time_'+g.id,'auto');
+function isRelax(g,L){ const p=timePref(g); if(p==='relax') return true; if(p==='timed') return false; return HEAVY.has(g.id) ? L>=2 : false; }
+function timeMul(g,L){ return HEAVY.has(g.id) ? [1,1.5,2,2.5][L] : [1,1,1,1.25][L]; }
+/* süresiz modda soru sayacı: 10 soruda biter */
+function relaxStep(delay){ S.qn=(S.qn||0)+1; setPill('B','Soru',`${Math.min(S.qn+1,QLIMIT)}/${QLIMIT}`); if(S.qn>=QLIMIT){ const c=S.correct; later(()=>finish(`✔ ${c} doğru · ✘ ${S.wrong} yanlış · 🐢 Süresiz`, {stars:c>=9?3:c>=7?2:c>=5?1:0}), delay); return true; } return false; }
+function countdown(sec,onEnd,opts={}){
+  const g=S.game;
+  if(S.relax){ $('#tbar').classList.add('hidden'); $('#pB').classList.remove('warn');
+    if(opts.q){ S.qn=0; setPill('B','Soru',`1/${QLIMIT}`); }
+    else { setPill('B','🐢 Süresiz','Bitir ✓'); const pb=$('#pB'); pb.classList.add('btnp'); pb.onclick=()=>{ pb.onclick=null; pb.classList.remove('btnp'); onEnd(); }; }
+    return; }
+  sec=Math.round(sec*timeMul(g,S.L)/5)*5;
+  let left=sec; $('#tbar').classList.remove('hidden'); const f=$('#tfill'); f.style.transition='none'; f.style.width='100%'; void f.offsetWidth; f.style.transition='';
   setPill('B','Süre',left); every(()=>{ left--; $('#pBv').textContent=Math.max(0,left); f.style.width=(left/sec*100)+'%'; $('#pB').classList.toggle('warn',left<=10); if(left<=5&&left>0) sfx('tick'); if(left<=0) onEnd(); },1000); }
 
 document.addEventListener('keydown',e=>{ if(!S.game||!S.onKey) return; if(e.target.tagName==='INPUT'&&e.key!=='Enter') return; S.onKey(e.key,e); });
@@ -2415,16 +2436,17 @@ function showIntro(){
   stage().innerHTML=`<div class="intro pop"><div class="bigart">${ART[g.id]()}</div><div>
     <div class="gchips">${S.openGrade?`<span style="background:${GR[S.openGrade][0]}">${S.openGrade}. sınıf</span>${S.theme?`<span class="cat">${S.theme}</span>`:''}`:g.grades.map(n=>`<span style="background:${GR[n][0]}">${n}. sınıf</span>`).join('')+`<span class="cat">${CATN[g.cat]}</span>`}</div>
     <h2>${g.title}</h2><p>${g.how}</p>
-    ${g.type==='quiz'?`<div class="mtitle">Nasıl oynamak istersin?</div><div class="modes" id="modes">${MODES.map(([k,ic,nm,ds])=>`<button class="mdb${k===modeOf(g)?' on':''}" data-m="${k}"><span>${ic}</span><b>${nm}</b><small>${ds}</small></button>`).join('')}</div><div class="mtitle">Seviye seç ve başla:</div>`:''}
+    ${g.type==='quiz'?`<div class="mtitle">Nasıl oynamak istersin?</div><div class="modes" id="modes">${MODES.map(([k,ic,nm,ds])=>`<button class="mdb${k===modeOf(g)?' on':''}" data-m="${k}"><span>${ic}</span><b>${nm}</b><small>${ds}</small></button>`).join('')}</div>`:''}${['quiz','hunt','coord'].includes(g.type)?`<div id="twrap"${g.type==='quiz'&&modeOf(g)==='maze'?' class="hidden"':''}><div class="mtitle">Süre:</div><div class="tsel" id="tsel">${[['auto','🤖 Otomatik',HEAVY.has(g.id)?'Zor seviyelerde süresiz':'Normal süre'],['timed','⏱️ Süreli','Zamana karşı yarış'],['relax','🐢 Süresiz','Acele yok, düşünerek çöz']].map(([k,nm,ds])=>`<button class="tsb${timePref(g)===k?' on':''}" data-t="${k}">${nm}<small>${ds}</small></button>`).join('')}</div></div>`:''}${g.type==='quiz'?`<div class="mtitle">Seviye seç ve başla:</div>`:''}
     <div class="lvls">${[1,2,3].map(L=>`<button class="lvl${L===rec?' onr':''}" data-l="${L}">${L===rec?`<em>${S.openGrade}. sınıfa önerilen</em>`:''}${'⭐'.repeat(L)}<span>${LVL[L]}</span><small>${best(g.id,L)?'En iyi: '+best(g.id,L):'Henüz oynanmadı'}</small></button>`).join('')}</div></div></div>`;
   stage().querySelector('.lvls').onclick=e=>{ const b=e.target.closest('.lvl'); if(b) start(+b.dataset.l); };
-  const md=$('#modes'); if(md) md.onclick=e=>{ const b=e.target.closest('.mdb'); if(!b) return; store.set('mode_'+g.id,b.dataset.m); md.querySelectorAll('.mdb').forEach(x=>x.classList.toggle('on',x===b)); sfx('flip'); };
+  const md=$('#modes'); if(md) md.onclick=e=>{ const b=e.target.closest('.mdb'); if(!b) return; store.set('mode_'+g.id,b.dataset.m); md.querySelectorAll('.mdb').forEach(x=>x.classList.toggle('on',x===b)); const tw=$('#twrap'); if(tw) tw.classList.toggle('hidden',b.dataset.m==='maze'); sfx('flip'); };
+  const ts=$('#tsel'); if(ts) ts.onclick=e=>{ const b=e.target.closest('.tsb'); if(!b) return; store.set('time_'+g.id,b.dataset.t); ts.querySelectorAll('.tsb').forEach(x=>x.classList.toggle('on',x===b)); sfx('flip'); };
   S.onKey=k=>{ if(['1','2','3'].includes(k)) start(+k); };
 }
 function start(L){
   reset(); const g=S.game; S.L=L; S.score=0; S.correct=0; S.wrong=0; S.streak=0;
   hidePills(); setPill('A','Puan',0); setStreak(); $('#pB').classList.remove('warn'); sfx('tick');
-  S.mode = g.type==='quiz' ? modeOf(g) : null;
+  S.mode = g.type==='quiz' ? modeOf(g) : null; S.relax = isRelax(g,L); S.qn=0;
   if(g.type==='quiz') ({race:runRace, maze:runMaze, balloon:runBalloon, classic:runQuiz})[S.mode](g);
   else ({sym:runSym, paint:runPaint, quiz:runQuiz, hunt:runHunt, angle:runAngle, coord:runCoord, line:runLine, memory:runMemory})[g.type](g);
 }
@@ -2457,15 +2479,15 @@ function runQuiz(g){
     qc.innerHTML=cur.choices.map((c,i)=>`<button class="ch${strip(c).length>8?' long':''}" data-i="${i}"><span class="kb">${i+1}</span><span>${c}</span></button>`).join('');
     $('.qwrap').classList.remove('pop'); void $('.qwrap').offsetWidth; $('.qwrap').classList.add('pop'); };
   const answer=i=>{ if(locked||i<0||i>=cur.choices.length) return; locked=true; const bs=[...$('#qc').children];
-    if(i===cur.correct){ bs[i].classList.add('ok'); good(); later(next,420); }
-    else { bs[i].classList.add('bad'); bs[cur.correct].classList.add('ok'); bad(); later(next,1300); } };
+    if(i===cur.correct){ bs[i].classList.add('ok'); good(); if(!(S.relax&&relaxStep(500))) later(next,420); }
+    else { bs[i].classList.add('bad'); bs[cur.correct].classList.add('ok'); bad(); if(!(S.relax&&relaxStep(1400))) later(next,S.relax?1900:1300); } };
   $('#qc').onclick=e=>{ const b=e.target.closest('.ch'); if(b) answer(+b.dataset.i); };
   S.onKey=k=>{ const n=parseInt(k,10); if(n>=1&&n<=5) answer(n-1); };
-  next(); countdown(60, ()=>finish());
+  next(); countdown(60, ()=>finish(), {q:1});
 }
 
 /* ================= OYUN MODLARI (araba yarışı, labirent, balon) ================= */
-const MODES=[['race','🏎️','Araba Yarışı','Doğru şeride geç, rakibini geç!'],['maze','🧩','Labirent','Kapıları aç, hazineye ulaş!'],['balloon','🎈','Balon Patlat','Doğru balonu patlat!'],['classic','📝','Klasik','60 saniyede kaç doğru?']];
+const MODES=[['race','🏎️','Araba Yarışı','Doğru şeride geç, rakibini geç!'],['maze','🧩','Labirent','Kapıları aç, hazineye ulaş!'],['balloon','🎈','Balon Patlat','Doğru balonu patlat!'],['classic','📝','Klasik','Soru soru çöz, puan topla!']];
 const TYPEICON={hunt:'🎯',memory:'🃏',coord:'📍',line:'📏',angle:'📐',sym:'🪞',paint:'🖌️'};
 const MODEICON={race:'🏎️',maze:'🧩',balloon:'🎈',classic:'📝'};
 function hashStr(s){ let h=7; for(const c of s) h=(h*31+c.charCodeAt(0))>>>0; return h; }
@@ -2481,7 +2503,7 @@ function runRace(g){
     <div class="rprog"><div class="rline"></div><span class="rfin">🏁</span><i class="mini" id="miniY">${carSVG('#EF4444','#FFD93D')}</i><i class="mini" id="miniC">${carSVG('#3B82F6','#fff')}</i><span class="rgate" id="rgate"></span></div>
     <div class="road" id="road"><div class="grass gl" id="gl"></div><div class="asph" id="asph"><div class="edge el"></div><div class="edge er"></div><div id="divs"></div><div class="gate" id="gate"></div><div class="car" id="car">${carSVG('#EF4444','#FFD93D')}</div></div><div class="grass gr" id="gr"></div></div>
     <div class="rctl"><button class="round" id="rL" aria-label="Sola">◀</button><button class="bigbtn" id="rT">⏩ Hızlan</button><button class="round" id="rR" aria-label="Sağa">▶</button></div></div>`;
-  setPill('B','Kapı',`1/${GN}`);
+  setPill('B','Kapı',`1/${GN}`); if(S.relax) setPill('B','🐢 Kapı',`1/${GN}`);
   const asph=$('#asph'), gate=$('#gate'), car=$('#car'), divs=$('#divs');
   const setLane=v=>{ lane=Math.max(0,Math.min(n-1,v)); car.style.left=((lane+.5)*100/n)+'%'; sfx('flip'); };
   const newGate=()=>{ cur=g.gen(L); n=cur.choices.length; p=0; turbo=false; phase='run';
@@ -2489,7 +2511,7 @@ function runRace(g){
     divs.innerHTML=Array.from({length:n-1},(_,k)=>`<div class="ldiv" style="left:${(k+1)*100/n}%"></div>`).join('');
     gate.innerHTML=cur.choices.map((c,i)=>`<div class="gcell" style="width:${100/n}%"><span class="${strip(c).length>8?'long':''}">${c}</span></div>`).join('');
     car.style.width=`min(${Math.round(60/n)}%, 84px)`; if(lane>n-1) lane=n-1; car.style.left=((lane+.5)*100/n)+'%';
-    T=[0,10,8.5,7][L]+(cur.fig?1.5:0)+(strip(cur.q).length>40?1.5:0)+(n>=4?1:0); $('#rgate').textContent=`${gi+1}/${GN}`; setPill('B','Kapı',`${gi+1}/${GN}`); };
+    T=([0,10,8.5,7][L]+(cur.fig?1.5:0)+(strip(cur.q).length>40?1.5:0)+(n>=4?1:0))*timeMul(S.game,L); if(S.relax){ T=4; $('#rT').innerHTML='✅ Bu şerit, git!'; $('#rT').classList.add('ok'); } $('#rgate').textContent=`${gi+1}/${GN}`; setPill('B',S.relax?'🐢 Kapı':'Kapı',`${gi+1}/${GN}`); };
   const resolve=()=>{ phase='res'; wait=1.0; const cells=[...gate.children];
     if(lane===cur.correct){ cells[lane].classList.add('ok'); good(); carBump=1; } else { cells[lane].classList.add('bad'); cells[cur.correct].classList.add('ok'); bad(); shakeT=0.45; } };
   const finishRace=()=>{ const win=S.correct>cpu; if(win) addScore(30); const st = win&&S.correct>=9?3: win?2: S.correct>=5?1:0;
@@ -2503,7 +2525,7 @@ function runRace(g){
     const spd = phase==='run' ? (turbo?5:1) : 2.2;
     off=(off+dt*(turbo&&phase==='run'?900:300))%120;
     divs.style.backgroundPositionY=off+'px'; [...divs.children].forEach(d=>d.style.backgroundPositionY=off+'px'); $('#gl').style.backgroundPositionY=off+'px'; $('#gr').style.backgroundPositionY=off+'px'; asph.querySelectorAll('.edge').forEach(d=>d.style.backgroundPositionY=off+'px');
-    if(phase==='run'){ p+=dt/T*spd; if(p>=1){ p=1; resolve(); } }
+    if(phase==='run'){ if(S.relax&&!turbo&&p>=0.5){ p=0.5; } else p+=dt/T*spd; if(p>=1){ p=1; resolve(); } }
     else { p+=dt*0.9; wait-=dt; if(wait<=0){ gi++; if(gi>=GN){ finishRace(); return false; } newGate(); } }
     cpu=Math.min(GN,(gi+Math.min(1,p))*0.65);
     const y=-gh+p*(carTop-gh+gh*0.15); gate.style.transform=`translateY(${y}px)`;
@@ -2575,20 +2597,20 @@ function runBalloon(g){
   stage().innerHTML=`<div class="mode bal"><div class="mq" id="mq"></div><div class="sky" id="sky"><div class="cloud" style="top:12%;left:8%"></div><div class="cloud" style="top:30%;right:10%;transform:scale(.7)"></div><div class="cloud" style="top:58%;left:40%;transform:scale(.5)"></div></div></div>`;
   const sky=$('#sky');
   const wave=()=>{ resolved=false; bs.forEach(b=>b.el.remove()); bs=[]; cur=g.gen(L); $('#mq').innerHTML=qPanel(cur); $('#mq').classList.remove('pop'); void $('#mq').offsetWidth; $('#mq').classList.add('pop');
-    const W=sky.clientWidth, H=sky.clientHeight, n=cur.choices.length, bw=Math.min(W/(n+.6), H*0.34, 190), slots=shuffle([...Array(n).keys()]); const D=[0,10,8.5,7][L]+(cur.fig?1.5:0)+(strip(cur.q).length>40?1.5:0);
+    const W=sky.clientWidth, H=sky.clientHeight, n=cur.choices.length, bw=Math.min(W/(n+.6), H*0.34, 190), slots=shuffle([...Array(n).keys()]); const D=([0,10,8.5,7][L]+(cur.fig?1.5:0)+(strip(cur.q).length>40?1.5:0))*timeMul(S.game,L);
     cur.choices.forEach((c,i)=>{ const el=document.createElement('button'); el.className='bln'; el.style.width=bw+'px'; el.innerHTML=balloonSVG(BCOL[(i+ri(0,5))%6])+`<span class="blab${strip(c).length>6?' long':''}">${c}</span>`; sky.appendChild(el);
-      const x=(slots[i]+.5)*W/n-bw/2; const b={el,i,x,y:H+ri(0,60)+i*8,v:(H+bw*1.6)/D*(0.9+Math.random()*0.2),ph:Math.random()*6,delay:Math.random()*0.8,gone:false}; bs.push(b);
+      const x=(slots[i]+.5)*W/n-bw/2; const b={el,i,x,stop:H*(0.08+Math.random()*0.3),y:H+ri(0,60)+i*8,v:(H+bw*1.6)/D*(0.9+Math.random()*0.2),ph:Math.random()*6,delay:Math.random()*0.8,gone:false}; bs.push(b);
       el.addEventListener('pointerdown',ev=>{ ev.preventDefault(); hit(b); }); });
     waveT=0; };
   const popEl=(b,cls)=>{ b.gone=true; b.el.classList.add(cls); later(()=>b.el.remove(),450); };
-  const endWave=()=>{ resolved=true; bs.forEach(b=>{ if(!b.gone) b.v*=5; }); later(wave,800); };
+  const endWave=()=>{ resolved=true; bs.forEach(b=>{ if(!b.gone) b.v*=5; }); if(!(S.relax&&relaxStep(800))) later(wave,800); };
   const hit=b=>{ if(resolved||b.gone) return; if(b.i===cur.correct){ popEl(b,'popok'); good(); burst(b); endWave(); }
-    else { popEl(b,'popbad'); bad(); const c=bs.find(x=>x.i===cur.correct); if(c) c.el.classList.add('glow'); resolved=true; later(()=>{ bs.forEach(x=>{ if(!x.gone) x.v*=5; }); later(wave,700); },900); } };
+    else { popEl(b,'popbad'); bad(); const c=bs.find(x=>x.i===cur.correct); if(c) c.el.classList.add('glow'); resolved=true; const fin=S.relax&&relaxStep(1600); later(()=>{ bs.forEach(x=>{ if(!x.gone) x.v*=5; }); if(!fin) later(wave,700); },S.relax?1400:900); } };
   const burst=b=>{ const r=b.el.getBoundingClientRect(), sr=sky.getBoundingClientRect(); for(let k=0;k<12;k++){ const d=document.createElement('i'); d.className='spark'; d.style.left=(r.left-sr.left+r.width/2)+'px'; d.style.top=(r.top-sr.top+r.width*.55)+'px'; d.style.background=pick(BCOL); d.style.setProperty('--dx',(Math.cos(k/12*6.28)*80)+'px'); d.style.setProperty('--dy',(Math.sin(k/12*6.28)*80)+'px'); sky.appendChild(d); setTimeout(()=>d.remove(),600); } };
   S.onKey=k=>{ const v=parseInt(k,10); if(v>=1&&cur&&v<=cur.choices.length){ const b=bs.find(x=>x.i===v-1); if(b) hit(b); } };
-  wave(); countdown(60, ()=>finish(''));
+  wave(); countdown(60, ()=>finish(''), {q:1});
   rafLoop((dt,t)=>{ waveT+=dt; let escapedCorrect=false;
-    for(const b of bs){ if(b.delay>0){ b.delay-=dt; continue; } b.y-=b.v*dt; b.el.style.transform=`translate(${b.x+Math.sin(t*1.6+b.ph)*10}px, ${b.y}px)`;
+    for(const b of bs){ if(b.delay>0){ b.delay-=dt; continue; } b.y-=b.v*dt; if(S.relax&&!resolved&&!b.gone&&b.y<b.stop) b.y=b.stop; b.el.style.transform=`translate(${b.x+Math.sin(t*1.6+b.ph)*10}px, ${b.y}px)`;
       if(!b.gone && b.y < -b.el.offsetHeight){ b.gone=true; if(b.i===cur.correct && !resolved) escapedCorrect=true; } }
     if(escapedCorrect){ resolved=true; S.wrong++; S.streak=0; setStreak(); sfx('bad'); floatText('Kaçtı!','var(--bad)'); later(wave,500); }
     if(!resolved && bs.length && bs.every(b=>b.gone)) { resolved=true; later(wave,300); }
